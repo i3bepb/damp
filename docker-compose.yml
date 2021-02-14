@@ -1,0 +1,40 @@
+version: '3'
+
+networks:
+  default:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: "${NETWORK_RANGE}"
+services:
+  db:
+    image: mysql:latest
+    networks:
+      - default
+    env_file:
+      - .env
+    command: [
+      'mysqld',
+      '--character-set-server=${MY_MYSQL_CHARSET}',
+      '--collation-server=${MY_MYSQL_CHARSET_COLLATE}',
+      '--port=${MY_MYSQL_PORT}',
+      '--default-authentication-plugin=mysql_native_password'
+    ]
+    volumes:
+      - ./docker/mysql/dump:/root/dump
+    ports:
+      - "${MY_MYSQL_PORT}:${MY_MYSQL_PORT}"
+  apache:
+    build: docker/apache/
+    networks:
+      - default
+    env_file:
+      - .env
+    volumes:
+      - ./app:/var/www/html
+      - ./docker/apache/config/sites-available:/etc/apache2/sites-enabled:rw
+      - ./docker/apache/config/php.ini:/usr/local/etc/php/php.ini:ro
+    depends_on:
+      - db
+    ports:
+      - "80:80"
